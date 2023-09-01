@@ -3,16 +3,16 @@ defmodule ExRTP.Packet do
   RTP packet encoding and decoding functionalities.
   """
 
-  alias ExRTP.Header
-
   @typedoc """
   Possible `decode/1` error reasons.
   """
   # TODO
-  @type decode_error() :: :todo
+  @type decode_error() :: :error
 
-  @type uint16() :: 0..65_535
-  @type uint32() :: 0..4_294_967_295
+  @type payload_type() :: 0..127
+  @type sequence_number() :: 0..65_535
+  @type timestamp() :: 0..4_294_967_295
+  @type ssrc() :: 0..4_294_967_295
 
   @typedoc """
   Struct representing an RTP packet.
@@ -22,13 +22,13 @@ defmodule ExRTP.Packet do
           padding: boolean(),
           extension: boolean(),
           marker: boolean(),
-          payload_type: 0..127,
-          sequence_number: uint16(),
-          timestamp: uint32(),
-          ssrc: uint32(),
-          csrc: [uint32()],
+          payload_type: payload_type(),
+          sequence_number: sequence_number(),
+          timestamp: timestamp(),
+          ssrc: ssrc(),
+          csrc: [ssrc()],
           # maybe not necessary
-          extension_profile: uint16() | nil,
+          extension_profile: non_neg_integer() | nil,
           extensions: [struct()],
           payload: binary(),
           # maybe not necessary
@@ -46,16 +46,30 @@ defmodule ExRTP.Packet do
                 padding_size: 0
               ]
 
-  @spec new() :: t()
-  def new() do
-    # TODO
+  @doc """
+  Create new RTP Packet struct.
+
+  Use `encode/1` to encode the packet into a binary.
+  """
+  @spec new(boolean(), payload_type(), sequence_number(), timestamp(), ssrc(), [ssrc()], binary()) ::
+          t()
+  def new(marker, payload_type, sequence_number, timestamp, ssrc, csrc, payload) do
+    %__MODULE__{
+      marker: marker,
+      payload_type: payload_type,
+      sequence_number: sequence_number,
+      timestamp: timestamp,
+      ssrc: ssrc,
+      csrc: csrc,
+      payload: payload
+    }
   end
 
   @doc """
   Encodes an RTP packet and returns resulting binary.
   """
   @spec encode(t()) :: binary()
-  def encode(packet) do
+  def encode(_packet) do
     # TODO
   end
 
@@ -63,7 +77,7 @@ defmodule ExRTP.Packet do
   Decodes binary into an RTP packet. 
   """
   @spec decode(binary()) :: {:ok, t()} | {:error, decode_error()}
-  def decode(raw) do
+  def decode(_raw) do
     # TODO
   end
 end
