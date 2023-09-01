@@ -18,6 +18,7 @@ jobs:
           elixir-version: ${{matrix.elixir}}
       - run: mix deps.get
       - run: mix credo
+      - run: mix dialyzer
       - run: mix format --check-formatted
       - run: mix docs 2>&1 | (! grep -q "warning:")
 
