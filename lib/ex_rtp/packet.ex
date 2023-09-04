@@ -3,6 +3,13 @@ defmodule ExRTP.Packet do
   RTP packet encoding and decoding functionalities.
   """
 
+  alias ExRTP.Packet.Extension
+
+  # RFC 8285 extension profiles
+  @one_byte_profile 0xBEDE
+  # this not always has to be 0x1000, see RFC 8285, sect. 4.3
+  @two_byte_profile 0x1000
+
   @typedoc """
   Possible `decode/1` error reasons.
 
@@ -148,19 +155,46 @@ defmodule ExRTP.Packet do
 
   defp decode_extension(
          <<
-           extension_profile::16,
+           profile::16,
            len::16,
            # extension = 32 bits * len
-           _extension::binary-size(4 * len),
+           data::binary-size(4 * len),
            rest::binary
          >>,
          packet
        ) do
-    # TODO: do something with extension
-    {:ok, rest, %{packet | extension_profile: extension_profile}}
+    with {:ok, extensions} <- do_decode_extension(profile, data) do
+      packet = %{packet | extension_profile: profile, extensions: extensions}
+      {:ok, rest, packet}
+    end
   end
 
   defp decode_extension(_raw, _packet) do
     {:error, :not_enough_data}
   end
+
+  defp do_decode_extension(@one_byte_profile, raw), do: decode_one_byte(raw)
+  defp do_decode_extension(@two_byte_profile, raw), do: decode_two_byte(raw)
+  defp do_decode_extension(_profile, raw), do: {:ok, [Extension.new(nil, raw)]}
+
+  defp decode_one_byte(raw, acc \\ [])
+  defp decode_one_byte(<<>>, acc), do: {:ok, acc}
+  defp decode_one_byte(<<15, _rest::binary>>, acc), do: {:ok, acc}
+  defp decode_one_byte(<<0, rest::binary>>, acc), do: decode_one_byte(rest, acc)
+
+  defp decode_one_byte(<<id::4, len::4, data::binary-size(len + 1), rest::binary>>, acc) do
+    decode_one_byte(rest, [Extension.new(id, data) | acc])
+  end
+
+  defp decode_one_byte(_raw, _acc), do: {:error, :not_enough_data}
+
+  defp decode_two_byte(raw, acc \\ [])
+  defp decode_two_byte(<<>>, acc), do: {:ok, acc}
+  defp decode_two_byte(<<0, rest::binary>>, acc), do: decode_two_byte(rest, acc)
+
+  defp decode_two_byte(<<id, len, data::binary-size(len), rest::binary>>, acc) do
+    decode_two_byte(rest, [Extension.new(id, data) | acc])
+  end
+
+  defp decode_two_byte(_raw, _acc), do: {:error, :not_enough_data}
 end
