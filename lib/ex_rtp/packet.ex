@@ -35,12 +35,14 @@ defmodule ExRTP.Packet do
           padding_size: non_neg_integer()
         }
 
-  @enforce_keys [:marker, :payload_type, :sequence_number, :timestamp, :ssrc, :csrc, :payload]
+  @enforce_keys [:payload_type, :sequence_number, :timestamp, :ssrc, :payload]
   defstruct @enforce_keys ++
               [
                 version: 2,
                 padding: false,
                 extension: false,
+                marker: false,
+                csrc: [],
                 extension_profile: nil,
                 extensions: [],
                 padding_size: 0
@@ -51,18 +53,9 @@ defmodule ExRTP.Packet do
 
   Use `encode/1` to encode the packet into a binary.
   """
-  @spec new(boolean(), payload_type(), sequence_number(), timestamp(), ssrc(), [ssrc()], binary()) ::
-          t()
-  def new(marker, payload_type, sequence_number, timestamp, ssrc, csrc, payload) do
-    %__MODULE__{
-      marker: marker,
-      payload_type: payload_type,
-      sequence_number: sequence_number,
-      timestamp: timestamp,
-      ssrc: ssrc,
-      csrc: csrc,
-      payload: payload
-    }
+  @spec new() :: t()
+  def new() do
+    # TODO
   end
 
   @doc """
@@ -78,6 +71,10 @@ defmodule ExRTP.Packet do
   """
   @spec decode(binary()) :: {:ok, t()} | {:error, decode_error()}
   def decode(_raw) do
+    # TODO
+  end
+
+  defp do_decode(<<version>>) do
     # TODO
   end
 end
