@@ -59,6 +59,13 @@ defmodule ExRTP.Packet do
   @spec new() :: t()
   def new() do
     # TODO
+    %__MODULE__{
+      payload_type: 0,
+      sequence_number: 0,
+      timestamp: 0,
+      ssrc: 0,
+      payload: <<>>
+    }
   end
 
   @doc """
@@ -67,6 +74,7 @@ defmodule ExRTP.Packet do
   @spec encode(t()) :: binary()
   def encode(_packet) do
     # TODO
+    <<>>
   end
 
   @doc """
