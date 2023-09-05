@@ -37,11 +37,9 @@ defmodule ExRTP.Packet do
           timestamp: timestamp(),
           ssrc: ssrc(),
           csrc: [ssrc()],
-          # maybe not necessary
           extension_profile: non_neg_integer() | nil,
           extensions: [struct()],
           payload: binary(),
-          # maybe not necessary
           padding_size: non_neg_integer()
         }
 
@@ -75,13 +73,83 @@ defmodule ExRTP.Packet do
     }
   end
 
+  # TODO: update comment when new is implemented
   @doc """
   Encodes an RTP packet and returns resulting binary.
+
+  This functions does NOT check if the packet is valid.
+  Always create a packet with `new/x` and other functions from this module
+  to make sure that it is valid.
   """
   @spec encode(t()) :: binary()
-  def encode(_packet) do
-    # TODO
-    <<>>
+  def encode(packet) do
+    csrc_count = length(packet.csrc)
+
+    header = <<
+      packet.version::2,
+      (packet.padding && 1) || 0::1,
+      (packet.extension && 1) || 0::1,
+      csrc_count::4,
+      (packet.marker && 1) || 0::1,
+      packet.payload_type::7,
+      packet.sequence_number::16,
+      packet.timestamp::32,
+      packet.ssrc::32,
+      encode_csrc(packet.csrc)::binary
+    >>
+
+    extension =
+      if packet.extension do
+        extensions = encode_extensions(packet.extension_profile, packet.extensions)
+        len = div(byte_size(extensions), 4)
+        <<packet.extension_profile::16, len::16, extensions::binary>>
+      else
+        <<>>
+      end
+
+    padding =
+      if packet.padding do
+        pad_len = packet.padding_size - 1
+        <<0::pad_len*8, packet.padding_size>>
+      else
+        <<>>
+      end
+
+    header <> extension <> packet.payload <> padding
+  end
+
+  defp encode_csrc(csrc, acc \\ <<>>)
+  defp encode_csrc([], acc), do: acc
+  defp encode_csrc([csrc | rest], acc), do: encode_csrc(rest, <<csrc::32, acc::binary>>)
+
+  defp encode_extensions(@one_byte_profile, extensions) do
+    extensions = encode_one_byte(extensions)
+    pad_len = 4 - rem(byte_size(extensions), 4)
+    <<extensions::binary, 0::pad_len*8>>
+  end
+
+  defp encode_extensions(@two_byte_profile, extensions) do
+    extensions = encode_two_byte(extensions)
+    pad_len = 4 - rem(byte_size(extensions), 4)
+    <<extensions::binary, 0::pad_len*8>>
+  end
+
+  defp encode_extensions(_profile, [extension]), do: extension.data
+
+  defp encode_one_byte(extensions, acc \\ <<>>)
+  defp encode_one_byte([], acc), do: acc
+
+  defp encode_one_byte([ext | rest], acc) do
+    len = byte_size(ext.data) - 1
+    encode_one_byte(rest, <<ext.id::4, len::4, ext.data::binary, acc::binary>>)
+  end
+
+  defp encode_two_byte(extensions, acc \\ <<>>)
+  defp encode_two_byte([], acc), do: acc
+
+  defp encode_two_byte([ext | rest], acc) do
+    len = byte_size(ext.data)
+    encode_two_byte(rest, <<ext.id, len, ext.data::binary, acc::binary>>)
   end
 
   @doc """
@@ -116,7 +184,7 @@ defmodule ExRTP.Packet do
       sequence_number: sequence_number,
       timestamp: timestamp,
       ssrc: ssrc,
-      csrc: get_csrc(csrc),
+      csrc: decode_csrc(csrc),
       payload: <<>>
     }
 
@@ -130,9 +198,11 @@ defmodule ExRTP.Packet do
     {:error, :not_enough_data}
   end
 
-  defp get_csrc(raw, acc \\ [])
-  defp get_csrc(<<>>, acc), do: acc
-  defp get_csrc(<<csrc::32, rest::binary>>, acc), do: get_csrc(rest, [csrc | acc])
+  defp decode_csrc(raw, acc \\ [])
+  defp decode_csrc(<<>>, acc), do: acc
+
+  defp decode_csrc(<<csrc::32, rest::binary>>, acc),
+    do: decode_csrc(rest, [csrc | acc])
 
   defp strip_padding(raw, %__MODULE__{padding: false} = packet) do
     {:ok, raw, packet}
