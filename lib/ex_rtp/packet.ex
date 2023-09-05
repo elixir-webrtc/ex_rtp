@@ -123,13 +123,13 @@ defmodule ExRTP.Packet do
 
   defp encode_extensions(@one_byte_profile, extensions) do
     extensions = encode_one_byte(extensions)
-    pad_len = 4 - rem(byte_size(extensions), 4)
+    pad_len = get_pad_len(byte_size(extensions))
     <<extensions::binary, 0::pad_len*8>>
   end
 
   defp encode_extensions(@two_byte_profile, extensions) do
     extensions = encode_two_byte(extensions)
-    pad_len = 4 - rem(byte_size(extensions), 4)
+    pad_len = get_pad_len(byte_size(extensions))
     <<extensions::binary, 0::pad_len*8>>
   end
 
@@ -150,6 +150,9 @@ defmodule ExRTP.Packet do
     len = byte_size(ext.data)
     encode_two_byte(rest, <<ext.id, len, ext.data::binary, acc::binary>>)
   end
+
+  defp get_pad_len(len) when rem(len, 4) == 0, do: 0
+  defp get_pad_len(len), do: 4 - rem(len, 4)
 
   @doc """
   Decodes binary into an RTP packet.
