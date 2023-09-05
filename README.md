@@ -3,11 +3,11 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/elixir-webrtc/ex_rtp/ci.yml?logo=github&label=CI)](https://github.com/elixir-webrtc/ex_rtp/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/elixir-webrtc/ex_rtp/graph/badge.svg?token=E98NHC8B00)](https://codecov.io/gh/elixir-webrtc/ex_rtp)
 
-Implementation of RTP protocol. 
+Implementation of RTP protocol in Elixir. 
 
-Based on:
-- [RFC 3550](https://datatracker.ietf.org/doc/html/rfc3550).
-- [RFC 5285](https://datatracker.ietf.org/doc/html/rfc5285).
+Implements:
+- [RFC 3550 - RTP: A Transport Protocol for Real-Time Applications](https://datatracker.ietf.org/doc/html/rfc3550)
+- [RFC 5285 - A General Mechanism for RTP Header Extensions](https://datatracker.ietf.org/doc/html/rfc5285)
 
 ## Installation
 

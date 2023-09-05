@@ -6,9 +6,9 @@ defmodule ExRTP.Packet.Extension do
   @typedoc """
   Struct representing raw RTP header extension.
 
-  Can be either one-byte or two-byte extension, as specified in RFC 5285.
-  In that case the `id` is a non-negative integer.
-  If `id == nil`, then this is the whole header-extension, as specified in RFC 3550, sect. 5.3.1.
+  Can be either:
+    * header extension, as specified in `RFC 3550`, then `id` is equal to `nil`
+    * one-byte or two-byte extension, as specified `RFC 5285`
   """
   @type t() :: %__MODULE__{
           id: non_neg_integer() | nil,
@@ -19,7 +19,7 @@ defmodule ExRTP.Packet.Extension do
   defstruct @enforce_keys
 
   @doc """
-  Create new Header extension struct.
+  Create new `t:ExRTP.Packet.Extension.t/0` struct.
   """
   @spec new(non_neg_integer() | nil, binary()) :: t()
   def new(id, data) do

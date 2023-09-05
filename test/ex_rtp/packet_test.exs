@@ -11,6 +11,116 @@ defmodule ExRTP.PacketTest do
   @ssrc 0x37B8307F
   @payload <<0, 0, 5, 0, 9>>
 
+  describe "new/5,6" do
+    test "with defaults" do
+      packet = Packet.new(@payload, @payload_type, @sequence_number, @timestamp, @ssrc)
+
+      assert %Packet{
+               version: 2,
+               padding: false,
+               extension: false,
+               marker: false,
+               payload_type: @payload_type,
+               sequence_number: @sequence_number,
+               timestamp: @timestamp,
+               ssrc: @ssrc,
+               csrc: [],
+               extension_profile: nil,
+               extensions: [],
+               payload: @payload,
+               padding_size: 0
+             } = packet
+    end
+
+    test "with custom options" do
+      csrc = [@ssrc, @ssrc + 5]
+
+      packet =
+        Packet.new(@payload, @payload_type, @sequence_number, @timestamp, @ssrc,
+          csrc: csrc,
+          marker: true
+        )
+
+      assert %Packet{
+               version: 2,
+               padding: false,
+               extension: false,
+               marker: true,
+               payload_type: @payload_type,
+               sequence_number: @sequence_number,
+               timestamp: @timestamp,
+               ssrc: @ssrc,
+               csrc: ^csrc,
+               extension_profile: nil,
+               extensions: [],
+               payload: @payload,
+               padding_size: 0
+             } = packet
+    end
+
+    test "with padding" do
+      packet =
+        Packet.new(@payload, @payload_type, @sequence_number, @timestamp, @ssrc, padding: 8)
+
+      assert %Packet{
+               version: 2,
+               padding: true,
+               extension: false,
+               marker: false,
+               payload_type: @payload_type,
+               sequence_number: @sequence_number,
+               timestamp: @timestamp,
+               ssrc: @ssrc,
+               csrc: [],
+               extension_profile: nil,
+               extensions: [],
+               payload: @payload,
+               padding_size: 8
+             } = packet
+    end
+  end
+
+  describe "set_extension/3" do
+    test "with number profile" do
+      profile = 0x1111
+      extension = %Extension{id: nil, data: <<0>>}
+
+      packet =
+        @payload
+        |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
+        |> Packet.set_extension(profile, [extension])
+
+      assert %Packet{
+               extension: true,
+               extension_profile: ^profile,
+               extensions: [^extension]
+             } = packet
+    end
+
+    test "with_atom_profile" do
+      extension = %Extension{id: 5, data: <<0>>}
+
+      packet =
+        @payload
+        |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
+        |> Packet.set_extension(:one_byte, [extension])
+
+      assert %Packet{
+               extension: true,
+               extension_profile: 0xBEDE,
+               extensions: [^extension]
+             } = packet
+
+      packet = Packet.set_extension(packet, :two_byte, [extension])
+
+      assert %Packet{
+               extension: true,
+               extension_profile: 0x1000,
+               extensions: [^extension]
+             } = packet
+    end
+  end
+
   describe "encode/1" do
     test "simple packet" do
       packet = %Packet{

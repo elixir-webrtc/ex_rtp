@@ -48,20 +48,55 @@ defmodule ExRTP.Packet do
               ]
 
   @doc """
-  Create new RTP Packet struct.
+  Create new `t:ExRTP.Packet.t/0` struct.
 
-  Use `encode/1` to encode the packet into a binary.
+  Options:
+    * `csrc` - CSRC list, by default `[]`
+    * `marker` - if marker field is set, by default `false`
+    * `padding` - length of payload padding, by default no padding is added
   """
-  @spec new() :: t()
-  def new() do
-    # TODO
-    %__MODULE__{
-      payload_type: 0,
-      sequence_number: 0,
-      timestamp: 0,
-      ssrc: 0,
-      payload: <<>>
+  @spec new(binary(), uint7(), uint16(), uint32(), uint32(),
+          csrc: [uint32()],
+          marker: boolean(),
+          padding: uint8()
+        ) ::
+          t()
+  def new(payload, payload_type, sequence_number, timestamp, ssrc, opts \\ []) do
+    csrc = Keyword.get(opts, :csrc, [])
+    marker = Keyword.get(opts, :marker, false)
+
+    packet = %__MODULE__{
+      marker: marker,
+      payload_type: payload_type,
+      sequence_number: sequence_number,
+      timestamp: timestamp,
+      ssrc: ssrc,
+      csrc: csrc,
+      payload: payload
     }
+
+    # TODO: maybe `pad_to_boundary` function?
+    case Keyword.fetch(opts, :padding) do
+      {:ok, pad_len} -> %{packet | padding: true, padding_size: pad_len}
+      :error -> packet
+    end
+  end
+
+  @doc """
+  Specify extension profile and add header extensions to the packet.
+  """
+  @spec set_extension(t(), :one_byte | :two_byte | uint16(), [Extension.t()]) :: t()
+  def set_extension(packet, profile, extensions) do
+    # TODO: maybe `add_extension` and `remove_extension` would also be useful
+    profile =
+      case profile do
+        :one_byte -> @one_byte_profile
+        :two_byte -> @two_byte_profile
+        other -> other
+      end
+
+    # TODO: should we validate extensions?
+    %{packet | extension: true, extension_profile: profile, extensions: extensions}
   end
 
   @doc """
@@ -144,10 +179,7 @@ defmodule ExRTP.Packet do
   @doc """
   Decodes binary into an RTP packet.
 
-  This function assumes that the input is an RTP v2 packet,
-  but it won't fail even if version is different that 2.
-
-  If packet is too short to ba a valid v2 RTP packet, this function
+  If packet is too short to ba valid, this function
   will fail with `:not_enough_data` error.
   """
   @spec decode(binary()) :: {:ok, t()} | {:error, :not_enough_data}
