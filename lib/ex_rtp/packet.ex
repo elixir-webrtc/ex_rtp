@@ -10,18 +10,10 @@ defmodule ExRTP.Packet do
   # this not always has to be 0x1000, see RFC 8285, sect. 4.3
   @two_byte_profile 0x1000
 
-  @typedoc """
-  Possible `decode/1` error reasons.
-
-  * `:not_enough_data` - provided binary is too short to be a valid RTP packet
-  """
-  @type decode_error() ::
-          :not_enough_data
-
-  @type payload_type() :: 0..127
-  @type sequence_number() :: 0..65_535
-  @type timestamp() :: 0..4_294_967_295
-  @type ssrc() :: 0..4_294_967_295
+  @type uint7() :: 0..127
+  @type uint8() :: 0..255
+  @type uint16() :: 0..65_535
+  @type uint32() :: 0..4_294_967_295
 
   @typedoc """
   Struct representing an RTP packet.
@@ -31,15 +23,15 @@ defmodule ExRTP.Packet do
           padding: boolean(),
           extension: boolean(),
           marker: boolean(),
-          payload_type: payload_type(),
-          sequence_number: sequence_number(),
-          timestamp: timestamp(),
-          ssrc: ssrc(),
-          csrc: [ssrc()],
-          extension_profile: non_neg_integer() | nil,
-          extensions: [struct()],
+          payload_type: uint7(),
+          sequence_number: uint16(),
+          timestamp: uint32(),
+          ssrc: uint32(),
+          csrc: [uint32()],
+          extension_profile: uint16() | nil,
+          extensions: [Extension.t()],
           payload: binary(),
-          padding_size: non_neg_integer()
+          padding_size: uint8()
         }
 
   @enforce_keys [:payload_type, :sequence_number, :timestamp, :ssrc, :payload]
@@ -72,13 +64,8 @@ defmodule ExRTP.Packet do
     }
   end
 
-  # TODO: update comment when new is implemented
   @doc """
   Encodes an RTP packet and returns resulting binary.
-
-  This functions does NOT check if the packet is valid.
-  Always create a packet with `new/x` and other functions from this module
-  to make sure that it is valid.
   """
   @spec encode(t()) :: binary()
   def encode(packet) do
@@ -159,8 +146,11 @@ defmodule ExRTP.Packet do
 
   This function assumes that the input is an RTP v2 packet,
   but it won't fail even if version is different that 2.
+
+  If packet is too short to ba a valid v2 RTP packet, this function
+  will fail with `:not_enough_data` error.
   """
-  @spec decode(binary()) :: {:ok, t()} | {:error, decode_error()}
+  @spec decode(binary()) :: {:ok, t()} | {:error, :not_enough_data}
   def decode(raw)
 
   def decode(<<
