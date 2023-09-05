@@ -258,5 +258,56 @@ defmodule ExRTP.PacketTest do
       sorter = fn a, b -> a.id >= b.id end
       assert Enum.sort(extensions, sorter) == Enum.sort(decoded_extensions, sorter)
     end
+
+    test "packet with one-byte extension with value 15" do
+      payload = <<0, 0, 5, 0, 9>>
+      extension_profile = 0xBEDE
+
+      ext_1 = <<5::4, 0::4, 7>>
+      decoded_ext_1 = %Extension{id: 5, data: <<7>>}
+      ext_2 = <<8::4, 1::4, 3, 6>>
+
+      content = <<ext_1::binary, 15, ext_2::binary, 0, 0>>
+      extension = <<extension_profile::16, 2::16, content::binary>>
+
+      packet =
+        <<@version::2, 0::1, 1::1, 0::4, 0::1, @payload_type::7, @sequence_number::16,
+          @timestamp::32, @ssrc::32, extension::binary, payload::binary>>
+
+      assert {:ok, decoded} = Packet.decode(packet)
+
+      assert %Packet{
+               version: 2,
+               padding: false,
+               extension: true,
+               marker: false,
+               payload_type: @payload_type,
+               sequence_number: @sequence_number,
+               timestamp: @timestamp,
+               ssrc: @ssrc,
+               csrc: [],
+               extension_profile: ^extension_profile,
+               extensions: decoded_extensions,
+               payload: ^payload,
+               padding_size: 0
+             } = decoded
+
+      assert decoded_extensions == [decoded_ext_1]
+    end
+
+    test "packet with invalid extensions" do
+      payload = <<0, 0, 5, 0, 9>>
+      extension_profile = 0x1000
+
+      # data is too short (1 vs expected 3 bytes)
+      ext = <<0, 5, 3, 1>>
+      extension = <<extension_profile::16, 1::16, ext::binary>>
+
+      packet =
+        <<@version::2, 0::1, 1::1, 0::4, 0::1, @payload_type::7, @sequence_number::16,
+          @timestamp::32, @ssrc::32, extension::binary, payload::binary>>
+
+      assert {:error, :not_enough_data} = Packet.decode(packet)
+    end
   end
 end
