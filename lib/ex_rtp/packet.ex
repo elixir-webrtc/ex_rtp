@@ -15,7 +15,6 @@ defmodule ExRTP.Packet do
 
   * `:not_enough_data` - provided binary is too short to be a valid RTP packet
   """
-  # TODO
   @type decode_error() ::
           :not_enough_data
 
