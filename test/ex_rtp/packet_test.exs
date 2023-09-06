@@ -1,5 +1,6 @@
 defmodule ExRTP.PacketTest do
   use ExUnit.Case, async: true
+  doctest ExRTP.Packet
 
   alias ExRTP.Packet
   alias ExRTP.Packet.Extension

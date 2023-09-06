@@ -21,7 +21,7 @@ defmodule ExRTP.Packet.Extension.AudioLevelExtension do
   defstruct @enforce_keys
 
   @doc """
-  Create new `t:ExRTP.Packet.Extension.AudioLevelExtension/0` struct.
+  Create new `t:ExRTP.Packet.Extension.AudioLevelExtension.t/0` struct.
   """
   @spec new(boolean(), level()) :: t()
   def new(voice, level) do

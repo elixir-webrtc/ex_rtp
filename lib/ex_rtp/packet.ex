@@ -1,6 +1,21 @@
 defmodule ExRTP.Packet do
   @moduledoc """
   RTP packet encoding and decoding functionalities.
+
+  ## Examples
+
+    ```elixir
+    iex> alias ExRTP.Packet
+    iex> alias ExRTP.Packet.Extension.AudioLevelExtension
+    iex> extension = AudioLevelExtension.new(true, 120) |> AudioLevelExtension.to_raw(5)
+    iex> payload = <<3, 5, 5, 0>>
+    iex> encoded =
+    ...>   payload
+    ...>   |> Packet.new(120, 50_000, 1_000_000, 500_000)
+    ...>   |> Packet.set_extension(:one_byte, [extension])
+    ...>   |> Packet.encode()
+    iex> {:ok, %Packet{payload: <<3, 5, 5, 0>>}} = Packet.decode(encoded)
+    ```
   """
 
   alias ExRTP.Packet.Extension
