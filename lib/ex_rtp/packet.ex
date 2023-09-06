@@ -51,7 +51,7 @@ defmodule ExRTP.Packet do
   Create new `t:ExRTP.Packet.t/0` struct.
 
   Options:
-    * `csrc` - CSRC list, by default `[]`
+    * `csrc` - CSRC list, by default `[]`, must be shorter than 16, otherwise function will raise
     * `marker` - if marker field is set, by default `false`
     * `padding` - length of payload padding, by default no padding is added
   """
@@ -63,6 +63,8 @@ defmodule ExRTP.Packet do
           t()
   def new(payload, payload_type, sequence_number, timestamp, ssrc, opts \\ []) do
     csrc = Keyword.get(opts, :csrc, [])
+    if length(csrc) > 15, do: raise("CSRC list must be shorter that 16")
+
     marker = Keyword.get(opts, :marker, false)
 
     packet = %__MODULE__{
@@ -75,28 +77,58 @@ defmodule ExRTP.Packet do
       payload: payload
     }
 
-    # TODO: maybe `pad_to_boundary` function?
     case Keyword.fetch(opts, :padding) do
+      {:ok, 0} -> packet
       {:ok, pad_len} -> %{packet | padding: true, padding_size: pad_len}
       :error -> packet
     end
   end
 
   @doc """
+  Fetch extension with specified `id`.
+
+  If no extension with `id` is found, `:error` is returned.
+  """
+  @spec fetch_extension(t(), non_neg_integer()) :: {:ok, Extension.t()} | :error
+  def fetch_extension(packet, id) do
+    case Enum.find(packet.extensions, &(&1.id == id)) do
+      nil -> :error
+      other -> {:ok, other}
+    end
+  end
+
+  @doc """
   Specify extension profile and add header extensions to the packet.
+
+  If extensions were set previously, this function will override them.
+  If profile is not one-byte or two-byte profile, `extension` should contain only one element.
+
+  Function will raise if extension format is invalid.
   """
   @spec set_extension(t(), :one_byte | :two_byte | uint16(), [Extension.t()]) :: t()
-  def set_extension(packet, profile, extensions) do
-    # TODO: maybe `add_extension` and `remove_extension` would also be useful
-    profile =
-      case profile do
-        :one_byte -> @one_byte_profile
-        :two_byte -> @two_byte_profile
-        other -> other
-      end
+  def set_extension(packet, profile, extensions) when profile in [:one_byte, @one_byte_profile] do
+    Enum.each(extensions, fn ext ->
+      if ext.id not in 1..15 or byte_size(ext.data) not in 1..16,
+        do: raise("Extension #{inspect(ext)} is not a valid one-byte extension")
+    end)
 
-    # TODO: should we validate extensions?
-    %{packet | extension: true, extension_profile: profile, extensions: extensions}
+    %{packet | extension: true, extension_profile: @one_byte_profile, extensions: extensions}
+  end
+
+  def set_extension(packet, profile, extensions) when profile in [:two_byte, @two_byte_profile] do
+    Enum.each(extensions, fn ext ->
+      if ext.id not in 1..255 or byte_size(ext.data) not in 0..255,
+        do: raise("Extension #{inspect(ext)} is not a valid two-byte extension")
+    end)
+
+    %{packet | extension: true, extension_profile: @two_byte_profile, extensions: extensions}
+  end
+
+  def set_extension(packet, profile, [extension]) do
+    if rem(byte_size(extension.data), 4) != 0,
+      do: raise("Length of extension's data must be multiple of 32 bits")
+
+    %{packet | extension: true, extension_profile: profile, extensions: [extension]}
   end
 
   @doc """
@@ -273,8 +305,9 @@ defmodule ExRTP.Packet do
 
   defp decode_one_byte(raw, acc \\ [])
   defp decode_one_byte(<<>>, acc), do: {:ok, acc}
-  defp decode_one_byte(<<15, _rest::binary>>, acc), do: {:ok, acc}
+  defp decode_one_byte(<<15::4, _len::4, _rest::binary>>, acc), do: {:ok, acc}
   defp decode_one_byte(<<0, rest::binary>>, acc), do: decode_one_byte(rest, acc)
+  defp decode_one_byte(<<0::4, _len::4, _rest::binary>>, acc), do: {:ok, acc}
 
   defp decode_one_byte(<<id::4, len::4, data::binary-size(len + 1), rest::binary>>, acc) do
     decode_one_byte(rest, [Extension.new(id, data) | acc])

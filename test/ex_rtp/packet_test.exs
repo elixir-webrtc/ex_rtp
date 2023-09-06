@@ -80,10 +80,33 @@ defmodule ExRTP.PacketTest do
     end
   end
 
+  describe "fetch_extension/2" do
+    test "extension exists" do
+      id = 5
+      extension = %Extension{id: id, data: <<0, 1, 2, 3>>}
+
+      packet =
+        @payload
+        |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
+        |> Packet.set_extension(0x1111, [extension])
+
+      assert {:ok, ^extension} = Packet.fetch_extension(packet, id)
+    end
+
+    test "extension does not exist" do
+      packet =
+        @payload
+        |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
+        |> Packet.set_extension(0x1111, [%Extension{id: 5, data: <<0, 1, 2, 3>>}])
+
+      assert :error = Packet.fetch_extension(packet, 10)
+    end
+  end
+
   describe "set_extension/3" do
     test "with number profile" do
       profile = 0x1111
-      extension = %Extension{id: nil, data: <<0>>}
+      extension = %Extension{id: nil, data: <<0, 1, 2, 3>>}
 
       packet =
         @payload
@@ -118,6 +141,13 @@ defmodule ExRTP.PacketTest do
                extension_profile: 0x1000,
                extensions: [^extension]
              } = packet
+    end
+
+    test "with invalid extension" do
+      extension = %Extension{id: 0, data: <<1, 2, 3>>}
+      packet = Packet.new(@payload, @payload_type, @sequence_number, @timestamp, @ssrc)
+
+      assert_raise RuntimeError, fn -> Packet.set_extension(packet, 0x1234, [extension]) end
     end
   end
 
@@ -607,7 +637,7 @@ defmodule ExRTP.PacketTest do
       decoded_ext_1 = %Extension{id: 5, data: <<7>>}
       ext_2 = <<8::4, 1::4, 3, 6>>
 
-      content = <<ext_1::binary, 15, ext_2::binary, 0, 0>>
+      content = <<ext_1::binary, 15::4, 8::4, ext_2::binary, 0, 0>>
       extension = <<extension_profile::16, 2::16, content::binary>>
 
       packet =
