@@ -7,16 +7,27 @@ defmodule ExRTP.Packet.Extension do
   Struct representing raw RTP header extension.
 
   Can be either:
-    * header extension, as specified in `RFC 3550`, then `id` is equal to `0`
+    * header extension, as specified in `RFC 3550`, then `id` is equal to `nil`
     * one-byte or two-byte extension, as specified `RFC 5285`
   """
   @type t() :: %__MODULE__{
-          id: non_neg_integer(),
+          id: non_neg_integer() | nil,
           data: binary()
         }
 
   @enforce_keys [:id, :data]
   defstruct @enforce_keys
+
+  @doc """
+  Converts extension struct to raw extension which can be used
+  in `ExRTP.Packet.set_extension/3`.
+  """
+  @callback to_raw(extension :: struct(), id :: non_neg_integer()) :: t()
+
+  @doc """
+  Converts raw extension to extension struct.
+  """
+  @callback from_raw(raw :: t()) :: struct()
 
   @doc """
   Create new `t:ExRTP.Packet.Extension.t/0` struct.
