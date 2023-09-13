@@ -188,7 +188,7 @@ defmodule ExRTP.Packet do
 
   defp encode_csrc(csrc, acc \\ <<>>)
   defp encode_csrc([], acc), do: acc
-  defp encode_csrc([csrc | rest], acc), do: encode_csrc(rest, <<csrc::32, acc::binary>>)
+  defp encode_csrc([csrc | rest], acc), do: encode_csrc(rest, <<acc::binary, csrc::32>>)
 
   defp encode_extensions(@one_byte_profile, extensions) do
     extensions = encode_one_byte(extensions)
@@ -209,7 +209,7 @@ defmodule ExRTP.Packet do
 
   defp encode_one_byte([ext | rest], acc) do
     len = byte_size(ext.data) - 1
-    encode_one_byte(rest, <<ext.id::4, len::4, ext.data::binary, acc::binary>>)
+    encode_one_byte(rest, <<acc::binary, ext.id::4, len::4, ext.data::binary>>)
   end
 
   defp encode_two_byte(extensions, acc \\ <<>>)
@@ -217,7 +217,7 @@ defmodule ExRTP.Packet do
 
   defp encode_two_byte([ext | rest], acc) do
     len = byte_size(ext.data)
-    encode_two_byte(rest, <<ext.id, len, ext.data::binary, acc::binary>>)
+    encode_two_byte(rest, <<acc::binary, ext.id, len, ext.data::binary>>)
   end
 
   defp get_pad_len(len) when rem(len, 4) == 0, do: 0
@@ -270,7 +270,7 @@ defmodule ExRTP.Packet do
   end
 
   defp decode_csrc(raw, acc \\ [])
-  defp decode_csrc(<<>>, acc), do: acc
+  defp decode_csrc(<<>>, acc), do: Enum.reverse(acc)
 
   defp decode_csrc(<<csrc::32, rest::binary>>, acc),
     do: decode_csrc(rest, [csrc | acc])
@@ -304,7 +304,8 @@ defmodule ExRTP.Packet do
          >>,
          packet
        ) do
-    with {:ok, extensions} <- do_decode_extension(profile, data) do
+    with {:ok, extensions} <- do_decode_extension(profile, data),
+         extensions <- Enum.reverse(extensions) do
       packet = %{packet | extension_profile: profile, extensions: extensions}
       {:ok, rest, packet}
     end

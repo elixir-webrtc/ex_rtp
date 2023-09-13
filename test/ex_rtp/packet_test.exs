@@ -229,8 +229,7 @@ defmodule ExRTP.PacketTest do
 
       encoded = Packet.encode(packet)
 
-      # unfortunately, order matters here, but in general it should not
-      csrc = for i <- Enum.reverse(csrc_list), do: <<i::32>>, into: <<>>
+      csrc = for i <- csrc_list, do: <<i::32>>, into: <<>>
 
       valid =
         <<@version::2, 0::1, 0::1, 3::4, 0::1, @payload_type::7, @sequence_number::16,
@@ -296,8 +295,7 @@ defmodule ExRTP.PacketTest do
 
       encoded = Packet.encode(packet)
 
-      # unfortunately, order matters here, but in general it should not
-      csrc = for i <- Enum.reverse(csrc_list), do: <<i::32>>, into: <<>>
+      csrc = for i <- csrc_list, do: <<i::32>>, into: <<>>
       extension = <<extension_profile::16, len::16, content::binary>>
       padding = <<0, 0, 0, padding_size>>
 
@@ -318,9 +316,7 @@ defmodule ExRTP.PacketTest do
       decoded_ext_2 = %Extension{id: 8, data: <<3, 6>>}
       ext_3 = <<12::4, 3::4, 3, 6, 2, 3>>
       decoded_ext_3 = %Extension{id: 12, data: <<3, 6, 2, 3>>}
-      # again, order matters (but in general it should not)
-      # extensions/csrc in binary are always reversed vs what is in the `Packet` struct
-      extensions = [decoded_ext_3, decoded_ext_2, decoded_ext_1]
+      extensions = [decoded_ext_1, decoded_ext_2, decoded_ext_3]
 
       packet = %Packet{
         version: 2,
@@ -359,8 +355,7 @@ defmodule ExRTP.PacketTest do
       decoded_ext_2 = %Extension{id: 8, data: <<3>>}
       ext_3 = <<12, 4, 3, 6, 2, 3>>
       decoded_ext_3 = %Extension{id: 12, data: <<3, 6, 2, 3>>}
-      # order matters :(
-      extensions = [decoded_ext_3, decoded_ext_2, decoded_ext_1]
+      extensions = [decoded_ext_1, decoded_ext_2, decoded_ext_3]
 
       packet = %Packet{
         version: 2,
