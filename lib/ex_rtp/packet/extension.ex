@@ -8,7 +8,7 @@ defmodule ExRTP.Packet.Extension do
 
   Can be either:
     * header extension, as specified in `RFC 3550`, then `id` is equal to `nil`
-    * one-byte or two-byte extension, as specified `RFC 5285`
+    * one-byte or two-byte extension, as specified in `RFC 5285`
   """
   @type t() :: %__MODULE__{
           id: non_neg_integer() | nil,

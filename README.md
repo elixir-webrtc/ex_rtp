@@ -1,5 +1,6 @@
 # ExRTP
-
+[![Hex.pm](https://img.shields.io/hexpm/v/ex_rtp.svg)](https://hex.pm/packages/ex_rtp)
+[![API Docs](https://img.shields.io/badge/api-docs-yellow.svg?style=flat)](https://hexdocs.pm/ex_rtp)
 [![CI](https://img.shields.io/github/actions/workflow/status/elixir-webrtc/ex_rtp/ci.yml?logo=github&label=CI)](https://github.com/elixir-webrtc/ex_rtp/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/elixir-webrtc/ex_rtp/graph/badge.svg?token=E98NHC8B00)](https://codecov.io/gh/elixir-webrtc/ex_rtp)
 

@@ -58,7 +58,8 @@ defmodule ExRTP.MixProject do
       extras: ["README.md"],
       source_ref: "v#{@version}",
       formatters: ["html"],
-      nest_modules_by_prefix: [ExRTP]
+      nest_modules_by_prefix: [ExRTP, ExRTP.Packet.Extension],
+      groups_for_modules: [Extensions: [~r/ExRTP\.Packet\.Extension\./]]
     ]
   end
 end

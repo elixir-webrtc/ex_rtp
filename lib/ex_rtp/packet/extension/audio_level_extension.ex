@@ -1,6 +1,6 @@
 defmodule ExRTP.Packet.Extension.AudioLevelExtension do
   @moduledoc """
-  Audio Level Extension described in RFC 6464.
+  Audio Level Extension described in `RFC 6464`.
   """
 
   alias ExRTP.Packet.Extension
