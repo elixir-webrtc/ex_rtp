@@ -5,6 +5,7 @@ defmodule ExRTP.Packet.Extension.AudioLevel do
 
   alias ExRTP.Packet.Extension
 
+  # not using @impl true on callbacks, as it implicitly removes documentation
   @behaviour Extension
 
   @type level() :: 0..127
@@ -31,7 +32,6 @@ defmodule ExRTP.Packet.Extension.AudioLevel do
     }
   end
 
-  @impl true
   def from_raw(%Extension{data: <<voice::1, level::7, _rest::binary>>}) do
     %__MODULE__{
       level: level,
@@ -39,7 +39,6 @@ defmodule ExRTP.Packet.Extension.AudioLevel do
     }
   end
 
-  @impl true
   def to_raw(%__MODULE__{level: level, voice: voice}, id) do
     data = <<(voice && 1) || 0::1, level::7>>
     Extension.new(id, data)

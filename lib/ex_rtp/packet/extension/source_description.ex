@@ -5,6 +5,7 @@ defmodule ExRTP.Packet.Extension.SourceDescription do
 
   alias ExRTP.Packet.Extension
 
+  # not using @impl true on callbacks, as it implicitly removes documentation
   @behaviour Extension
 
   @typedoc """
@@ -33,14 +34,12 @@ defmodule ExRTP.Packet.Extension.SourceDescription do
     }
   end
 
-  @impl true
   def from_raw(%Extension{data: data}) do
     %__MODULE__{
       text: data
     }
   end
 
-  @impl true
   def to_raw(%__MODULE__{text: text}, id) do
     Extension.new(id, text)
   end
