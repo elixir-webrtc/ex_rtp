@@ -27,7 +27,7 @@ defmodule ExRTP.Packet.Extension do
   @doc """
   Converts raw extension to extension struct.
   """
-  @callback from_raw(raw :: t()) :: struct()
+  @callback from_raw(raw :: t()) :: {:ok, struct()} | {:error, :invalid_extension}
 
   @doc """
   Create new `t:ExRTP.Packet.Extension.t/0` struct.

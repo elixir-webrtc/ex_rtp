@@ -32,11 +32,12 @@ defmodule ExRTP.Packet.Extension.AudioLevel do
     }
   end
 
-  def from_raw(%Extension{data: <<voice::1, level::7, _rest::binary>>}) do
-    %__MODULE__{
-      level: level,
-      voice: voice == 1
-    }
+  def from_raw(%Extension{data: <<voice::1, level::7>>}) do
+    {:ok, %__MODULE__{level: level, voice: voice == 1}}
+  end
+
+  def from_raw(%Extension{}) do
+    {:error, :invalid_extension}
   end
 
   def to_raw(%__MODULE__{level: level, voice: voice}, id) do

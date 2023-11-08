@@ -10,11 +10,18 @@ defmodule ExRTP.Packet.Extension.AudioLevelTest do
     assert %AudioLevel{voice: true, level: 99} = extension
   end
 
-  test "from_raw/1" do
-    raw = %Extension{id: 12, data: <<1::1, 88::7>>}
-    extension = AudioLevel.from_raw(raw)
+  describe "from_raw/1" do
+    test "valid extension" do
+      raw = %Extension{id: 12, data: <<1::1, 88::7>>}
+      assert {:ok, extension} = AudioLevel.from_raw(raw)
 
-    assert %AudioLevel{voice: true, level: 88} = extension
+      assert %AudioLevel{voice: true, level: 88} = extension
+    end
+
+    test "invalid extension" do
+      raw = %Extension{id: 12, data: <<1::1, 88::7, 5>>}
+      assert {:error, :invalid_extension} = AudioLevel.from_raw(raw)
+    end
   end
 
   test "to_raw/2" do

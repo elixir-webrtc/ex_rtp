@@ -35,9 +35,7 @@ defmodule ExRTP.Packet.Extension.SourceDescription do
   end
 
   def from_raw(%Extension{data: data}) do
-    %__MODULE__{
-      text: data
-    }
+    {:ok, %__MODULE__{text: data}}
   end
 
   def to_raw(%__MODULE__{text: text}, id) do

@@ -17,7 +17,7 @@ defmodule ExRTP.Packet.Extension.SourceDescriptionTest do
 
   test "from_raw/1" do
     raw = %Extension{id: 12, data: @text}
-    extension = SourceDescription.from_raw(raw)
+    assert {:ok, extension} = SourceDescription.from_raw(raw)
 
     assert %SourceDescription{text: @text, type: nil} = extension
   end
