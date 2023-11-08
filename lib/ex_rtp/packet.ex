@@ -6,8 +6,8 @@ defmodule ExRTP.Packet do
 
     ```elixir
     iex> alias ExRTP.Packet
-    iex> alias ExRTP.Packet.Extension.AudioLevelExtension
-    iex> extension = AudioLevelExtension.new(true, 120) |> AudioLevelExtension.to_raw(5)
+    iex> alias ExRTP.Packet.Extension.AudioLevel
+    iex> extension = AudioLevel.new(true, 120) |> AudioLevel.to_raw(5)
     iex> payload = <<3, 5, 5, 0>>
     iex> encoded =
     ...>   payload

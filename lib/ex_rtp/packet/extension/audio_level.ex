@@ -1,4 +1,4 @@
-defmodule ExRTP.Packet.Extension.AudioLevelExtension do
+defmodule ExRTP.Packet.Extension.AudioLevel do
   @moduledoc """
   Audio Level Extension described in `RFC 6464`.
   """
@@ -21,7 +21,7 @@ defmodule ExRTP.Packet.Extension.AudioLevelExtension do
   defstruct @enforce_keys
 
   @doc """
-  Create new `t:ExRTP.Packet.Extension.AudioLevelExtension.t/0` struct.
+  Create new `t:ExRTP.Packet.Extension.AudioLevel.t/0` struct.
   """
   @spec new(boolean(), level()) :: t()
   def new(voice, level) do
