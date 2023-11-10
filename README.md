@@ -15,7 +15,7 @@ Implements:
 ```elixir
 def deps do
   [
-    {:ex_rtp, "~> 0.1.0"}
+    {:ex_rtp, "~> 0.2.0"}
   ]
 end
 ```
