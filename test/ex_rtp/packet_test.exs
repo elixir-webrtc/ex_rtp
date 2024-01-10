@@ -12,19 +12,26 @@ defmodule ExRTP.PacketTest do
   @ssrc 0x37B8307F
   @payload <<0, 0, 5, 0, 9>>
 
-  describe "new/5,6" do
+  @packet Packet.new(@payload,
+            payload_type: @payload_type,
+            sequence_number: @sequence_number,
+            timestamp: @timestamp,
+            ssrc: @ssrc
+          )
+
+  describe "new/2" do
     test "with defaults" do
-      packet = Packet.new(@payload, @payload_type, @sequence_number, @timestamp, @ssrc)
+      packet = Packet.new(@payload)
 
       assert %Packet{
                version: 2,
                padding: false,
                extension: false,
                marker: false,
-               payload_type: @payload_type,
-               sequence_number: @sequence_number,
-               timestamp: @timestamp,
-               ssrc: @ssrc,
+               payload_type: 0,
+               sequence_number: 0,
+               timestamp: 0,
+               ssrc: 0,
                csrc: [],
                extension_profile: nil,
                extensions: nil,
@@ -37,7 +44,11 @@ defmodule ExRTP.PacketTest do
       csrc = [@ssrc, @ssrc + 5]
 
       packet =
-        Packet.new(@payload, @payload_type, @sequence_number, @timestamp, @ssrc,
+        Packet.new(@payload,
+          payload_type: @payload_type,
+          sequence_number: @sequence_number,
+          timestamp: @timestamp,
+          ssrc: @ssrc,
           csrc: csrc,
           marker: true
         )
@@ -61,7 +72,13 @@ defmodule ExRTP.PacketTest do
 
     test "with padding" do
       packet =
-        Packet.new(@payload, @payload_type, @sequence_number, @timestamp, @ssrc, padding: 8)
+        Packet.new(@payload,
+          payload_type: @payload_type,
+          sequence_number: @sequence_number,
+          timestamp: @timestamp,
+          ssrc: @ssrc,
+          padding: 8
+        )
 
       assert %Packet{
                version: 2,
@@ -82,7 +99,13 @@ defmodule ExRTP.PacketTest do
 
     test "with padding equal to 0" do
       packet =
-        Packet.new(@payload, @payload_type, @sequence_number, @timestamp, @ssrc, padding: 0)
+        Packet.new(@payload,
+          payload_type: @payload_type,
+          sequence_number: @sequence_number,
+          timestamp: @timestamp,
+          ssrc: @ssrc,
+          padding: 0
+        )
 
       assert %Packet{
                version: 2,
@@ -107,29 +130,19 @@ defmodule ExRTP.PacketTest do
       id = 5
       extension = %Extension{id: id, data: <<0, 1, 2, 3>>}
 
-      packet =
-        @payload
-        |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
-        |> Packet.add_extension(extension)
+      packet = Packet.add_extension(@packet, extension)
 
       assert {:ok, ^extension} = Packet.fetch_extension(packet, id)
     end
 
     test "when different extension exists" do
-      packet =
-        @payload
-        |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
-        |> Packet.add_extension(%Extension{id: 5, data: <<0, 1, 2, 3>>})
+      packet = Packet.add_extension(@packet, %Extension{id: 5, data: <<0, 1, 2, 3>>})
 
       assert :error = Packet.fetch_extension(packet, 10)
     end
 
     test "when no extensions exist" do
-      packet =
-        @payload
-        |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
-
-      assert :error = Packet.fetch_extension(packet, 10)
+      assert :error = Packet.fetch_extension(@packet, 10)
     end
   end
 
@@ -139,8 +152,7 @@ defmodule ExRTP.PacketTest do
       extension = <<0, 1, 2, 3>>
 
       packet =
-        @payload
-        |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
+        @packet
         |> Packet.set_extension(profile, extension)
 
       assert %Packet{
@@ -153,9 +165,7 @@ defmodule ExRTP.PacketTest do
     test "with invalid extension" do
       # lenght is not multiple of 4 bytes
       extension = <<1, 2, 3>>
-      packet = Packet.new(@payload, @payload_type, @sequence_number, @timestamp, @ssrc)
-
-      assert_raise FunctionClauseError, fn -> Packet.set_extension(packet, 0x1234, extension) end
+      assert_raise FunctionClauseError, fn -> Packet.set_extension(@packet, 0x1234, extension) end
     end
   end
 
@@ -163,10 +173,7 @@ defmodule ExRTP.PacketTest do
     test "with only one_byte extensions" do
       extension = %Extension{id: 5, data: <<1, 2, 3, 4>>}
 
-      packet =
-        @payload
-        |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
-        |> Packet.add_extension(extension)
+      packet = Packet.add_extension(@packet, extension)
 
       assert %Packet{
                extension: true,
@@ -179,10 +186,7 @@ defmodule ExRTP.PacketTest do
       one_byte_extension = %Extension{id: 5, data: <<1, 2, 3, 4>>}
       two_byte_extension = %Extension{id: 124, data: <<1, 2, 3, 4>>}
 
-      packet =
-        @payload
-        |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
-        |> Packet.add_extension(two_byte_extension)
+      packet = Packet.add_extension(@packet, two_byte_extension)
 
       assert %Packet{
                extension: true,
@@ -200,17 +204,14 @@ defmodule ExRTP.PacketTest do
     end
 
     test "with invalid extension" do
-      packet = Packet.new(@payload, @payload_type, @sequence_number, @timestamp, @ssrc)
       extension = %Extension{id: 5000, data: <<>>}
-
-      assert_raise RuntimeError, fn -> Packet.add_extension(packet, extension) end
+      assert_raise RuntimeError, fn -> Packet.add_extension(@packet, extension) end
     end
   end
 
   test "remove_extensions/1" do
     packet =
-      @payload
-      |> Packet.new(@payload_type, @sequence_number, @timestamp, @ssrc)
+      @packet
       |> Packet.add_extension(%Extension{id: 5, data: <<0, 1, 2, 3>>})
       |> Packet.remove_extensions()
 

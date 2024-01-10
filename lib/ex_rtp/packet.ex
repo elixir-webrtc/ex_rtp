@@ -11,10 +11,15 @@ defmodule ExRTP.Packet do
     iex> payload = <<3, 5, 5, 0>>
     iex> encoded =
     ...>   payload
-    ...>   |> Packet.new(120, 50_000, 1_000_000, 500_000)
+    ...>   |> Packet.new(
+    ...>     payload_type: 120,
+    ...>     sequence_number: 50_000,
+    ...>     timestamp: 1_000_000,
+    ...>     ssrc: 500_000
+    ...>   )
     ...>   |> Packet.add_extension(extension)
     ...>   |> Packet.encode()
-    iex> {:ok, %Packet{payload: <<3, 5, 5, 0>>}} = Packet.decode(encoded)
+    iex> {:ok, %Packet{payload: ^payload}} = Packet.decode(encoded)
     ```
   """
 
@@ -33,7 +38,7 @@ defmodule ExRTP.Packet do
   @typedoc """
   Struct representing an RTP packet.
 
-  Use `new/6` to create a new RTP packet. RTP header extensions and packet
+  Use `new/2` to create a new RTP packet. RTP header extensions and packet
   padding should not be modified directly, but with the use of functions in this module.
   """
   @type t() :: %__MODULE__{
@@ -68,34 +73,42 @@ defmodule ExRTP.Packet do
   @doc """
   Creates new `t:ExRTP.Packet.t/0` struct.
 
-  Options:
-    * `csrc` - CSRC list, by default `[]`, must be shorter than 16, otherwise function will raise
-    * `marker` - if marker field is set, by default `false`
-    * `padding` - length of payload padding, by default no padding is added
+  The `fields` parameter corresponds to the RTP packet header fields.
+  Refer to `RFC 3550` for in-depth explanation.
+
+  If not passed, `payload_type`, `sequence_number`, `timestamp` and
+  `ssrc` will be set to `0`, as they are often expected to be set later
+  during the processing of the packet.
+
+  The `fields` keyword list may also include:
+    * `csrc` (by default `[]`, must be shorter than `16`),
+    * `marker` (by default `false`),
+    * `padding` (by default no padding is applied)
   """
-  @spec new(binary(), uint7(), uint16(), uint32(), uint32(),
+  @spec new(binary(),
+          payload_type: uint7(),
+          sequence_number: uint16(),
+          timestamp: uint32(),
+          ssrc: uint32(),
           csrc: [uint32()],
           marker: boolean(),
           padding: uint8()
-        ) ::
-          t()
-  def new(payload, payload_type, sequence_number, timestamp, ssrc, opts \\ []) do
-    csrc = Keyword.get(opts, :csrc, [])
+        ) :: t()
+  def new(payload, fields \\ []) do
+    csrc = Keyword.get(fields, :csrc, [])
     if length(csrc) > 15, do: raise("CSRC list must be shorter that 16")
 
-    marker = Keyword.get(opts, :marker, false)
-
     packet = %__MODULE__{
-      marker: marker,
-      payload_type: payload_type,
-      sequence_number: sequence_number,
-      timestamp: timestamp,
-      ssrc: ssrc,
+      marker: Keyword.get(fields, :marker, false),
+      payload_type: Keyword.get(fields, :payload_type, 0),
+      sequence_number: Keyword.get(fields, :sequence_number, 0),
+      timestamp: Keyword.get(fields, :timestamp, 0),
+      ssrc: Keyword.get(fields, :ssrc, 0),
       csrc: csrc,
       payload: payload
     }
 
-    case Keyword.fetch(opts, :padding) do
+    case Keyword.fetch(fields, :padding) do
       {:ok, 0} -> packet
       {:ok, pad_len} -> %{packet | padding: true, padding_size: pad_len}
       :error -> packet
