@@ -7,8 +7,16 @@
 Implementation of RTP protocol in Elixir. 
 
 Implements:
-- [RFC 3550 - RTP: A Transport Protocol for Real-Time Applications](https://datatracker.ietf.org/doc/html/rfc3550)
-- [RFC 5285 - A General Mechanism for RTP Header Extensions](https://datatracker.ietf.org/doc/html/rfc5285)
+- [RTP: A Transport Protocol for Real-Time Applications](https://datatracker.ietf.org/doc/html/rfc3550)
+- [A General Mechanism for RTP Header Extensions](https://datatracker.ietf.org/doc/html/rfc8285)
+
+Includes out-of-the-box support for these RTP header extensions:
+- [A Real-time Transport Protocol (RTP) Header Extension for Client-to-Mixer Audio Level Indication](https://datatracker.ietf.org/doc/html/rfc6464)
+- [RTP Header Extension for the RTP Control Protocol (RTCP) Source Description Items](https://datatracker.ietf.org/doc/html/rfc7941)
+
+Other RTP header extensions can be added by implementing the `ExRTP.Packet.Extension` behaviour.
+
+See [documentation](https://hexdocs.pm/ex_rtp) for usage examples.
 
 ## Installation
 

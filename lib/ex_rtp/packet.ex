@@ -12,7 +12,7 @@ defmodule ExRTP.Packet do
     iex> encoded =
     ...>   payload
     ...>   |> Packet.new(120, 50_000, 1_000_000, 500_000)
-    ...>   |> Packet.set_extension(:one_byte, [extension])
+    ...>   |> Packet.add_extension(extension)
     ...>   |> Packet.encode()
     iex> {:ok, %Packet{payload: <<3, 5, 5, 0>>}} = Packet.decode(encoded)
     ```
@@ -32,6 +32,9 @@ defmodule ExRTP.Packet do
 
   @typedoc """
   Struct representing an RTP packet.
+
+  Use `new/6` to create a new RTP packet. RTP header extensions and packet
+  padding should not be modified directly, but with the use of functions in this module.
   """
   @type t() :: %__MODULE__{
           version: 0..3,
@@ -44,7 +47,7 @@ defmodule ExRTP.Packet do
           ssrc: uint32(),
           csrc: [uint32()],
           extension_profile: uint16() | nil,
-          extensions: [Extension.t()],
+          extensions: [Extension.t()] | binary() | nil,
           payload: binary(),
           padding_size: uint8()
         }
@@ -58,12 +61,12 @@ defmodule ExRTP.Packet do
                 marker: false,
                 csrc: [],
                 extension_profile: nil,
-                extensions: [],
+                extensions: nil,
                 padding_size: 0
               ]
 
   @doc """
-  Create new `t:ExRTP.Packet.t/0` struct.
+  Creates new `t:ExRTP.Packet.t/0` struct.
 
   Options:
     * `csrc` - CSRC list, by default `[]`, must be shorter than 16, otherwise function will raise
@@ -100,11 +103,15 @@ defmodule ExRTP.Packet do
   end
 
   @doc """
-  Fetch extension with specified `id`.
+  Fetches extension with specified `id` from this packet.
 
-  If no extension with `id` is found, `:error` is returned.
+  If no extension with `id` is found or `RFC 8285` extension mechanism is not used, this function will return `:error`.
   """
   @spec fetch_extension(t(), non_neg_integer()) :: {:ok, Extension.t()} | :error
+  def fetch_extension(packet, id)
+
+  def fetch_extension(%__MODULE__{extensions: ext}, _id) when not is_list(ext), do: :error
+
   def fetch_extension(packet, id) do
     case Enum.find(packet.extensions, &(&1.id == id)) do
       nil -> :error
@@ -113,37 +120,70 @@ defmodule ExRTP.Packet do
   end
 
   @doc """
-  Specify extension profile and add header extensions to the packet.
+  Sets RTP header extension (`RFC 3550`, one extension per packet) for this packet.
 
-  If extensions were set previously, this function will override them.
-  If profile is not one-byte or two-byte profile, `extension` should contain only one element.
+  If you want to use the general extension mechanism from `RFC 8285` (multiple extensions per packet),
+  see `add_extension/2`.
 
-  Function will raise if extension format is invalid.
+  Note that:
+    * this function will overwrite any extensions set beforehand,
+    * extension must be no longer than `262_140` bytes and its length must be a multiple of `4` bytes,
+    * profile value must not be `0xBEDE` or `0x1000`.
   """
-  @spec set_extension(t(), :one_byte | :two_byte | uint16(), [Extension.t()]) :: t()
-  def set_extension(packet, profile, extensions) when profile in [:one_byte, @one_byte_profile] do
-    Enum.each(extensions, fn ext ->
-      if ext.id not in 1..15 or byte_size(ext.data) not in 1..16,
-        do: raise("Extension #{inspect(ext)} is not a valid one-byte extension")
-    end)
-
-    %{packet | extension: true, extension_profile: @one_byte_profile, extensions: extensions}
+  @spec set_extension(t(), uint16(), binary()) :: t()
+  def set_extension(packet, profile, extension)
+      when profile not in [@one_byte_profile, @two_byte_profile] and
+             byte_size(extension) <= 262_140 and rem(byte_size(extension), 4) == 0 do
+    %{packet | extension: true, extension_profile: profile, extensions: extension}
   end
 
-  def set_extension(packet, profile, extensions) when profile in [:two_byte, @two_byte_profile] do
-    Enum.each(extensions, fn ext ->
-      if ext.id not in 1..255 or byte_size(ext.data) not in 0..255,
-        do: raise("Extension #{inspect(ext)} is not a valid two-byte extension")
-    end)
+  @doc """
+  Adds RTP header extension (`RFC 8285`, multiple extensions per packet) to this packet.
 
-    %{packet | extension: true, extension_profile: @two_byte_profile, extensions: extensions}
+  If you want to use the traditional RTP extension mechanism (one extension per packet),
+  see `set_extension/3`.
+
+  Note that: 
+    * if this packet already has the traditional extension (`RFC 3550`, one extension per packet) set,
+    it will be removed,
+    * if the packet contained the `RFC 8285` extensions, this function will
+    append the new extension without removing previous extensions.
+
+  This function automatically decides whether to use "one byte" or "two byte" extension mechanism
+  (see `RFC 8285`, sec. 4) based on the extension `data` size and its `id`:
+    * if sizes of all of the extension are in range `1..16`, and the IDs are in range `1..14`, "one byte" mechanism is used,
+    * if there is an extension with size in range `17..255` or equal to `0`, or with ID in range `15..255`, "two byte" mechanism is used,
+    * otherwise, the extension is invalid and this function will raise.
+  """
+  @spec add_extension(t(), Extension.t()) :: t()
+  def add_extension(packet, extension) do
+    profile =
+      case get_extension_type(extension) do
+        :one_byte when packet.extension_profile != @two_byte_profile -> @one_byte_profile
+        p when p in [:one_byte, :two_byte] -> @two_byte_profile
+        :invalid -> raise "Extension #{inspect(extension)} is invalid"
+      end
+
+    extensions = if is_list(packet.extensions), do: packet.extensions, else: []
+    %{packet | extension: true, extension_profile: profile, extensions: extensions ++ [extension]}
   end
 
-  def set_extension(packet, profile, [extension]) do
-    if rem(byte_size(extension.data), 4) != 0,
-      do: raise("Length of extension's data must be multiple of 32 bits")
+  defp get_extension_type(%Extension{id: id, data: data}) do
+    data_size = byte_size(data)
 
-    %{packet | extension: true, extension_profile: profile, extensions: [extension]}
+    cond do
+      id in 1..14 and data_size in 1..16 -> :one_byte
+      id in 1..255 and data_size in 0..255 -> :two_byte
+      true -> :invalid
+    end
+  end
+
+  @doc """
+  Removes RTP header extension (or all of the extensions) form this packet.
+  """
+  @spec remove_extensions(t()) :: t()
+  def remove_extensions(packet) do
+    %{packet | extension: false, extension_profile: nil, extensions: nil}
   end
 
   @doc """
@@ -202,7 +242,7 @@ defmodule ExRTP.Packet do
     <<extensions::binary, 0::pad_len*8>>
   end
 
-  defp encode_extensions(_profile, [extension]), do: extension.data
+  defp encode_extensions(_profile, extension) when is_binary(extension), do: extension
 
   defp encode_one_byte(extensions, acc \\ <<>>)
   defp encode_one_byte([], acc), do: acc
@@ -226,8 +266,12 @@ defmodule ExRTP.Packet do
   @doc """
   Decodes binary into an RTP packet.
 
-  If packet is too short to ba valid, this function
-  will fail with `:not_enough_data` error.
+  If RTP header extension is not used, `extensions` and `extension_profile` fields in the returned struct will be `nil`.
+  Otherwise, `extensions` will be:
+    * a `list`, if the general mechanism for RTP header extension from `RFC 8285` is used,
+    * a `binary`, if this is a traditional header extension as defined in `RFC 3550`
+
+  If the binary is too short to be valid, this function will return error with `:not_enough_data`.
   """
   @spec decode(binary()) :: {:ok, t()} | {:error, :not_enough_data}
   def decode(raw)
@@ -305,7 +349,7 @@ defmodule ExRTP.Packet do
          packet
        ) do
     with {:ok, extensions} <- do_decode_extension(profile, data),
-         extensions <- Enum.reverse(extensions) do
+         extensions <- if(is_list(extensions), do: Enum.reverse(extensions), else: extensions) do
       packet = %{packet | extension_profile: profile, extensions: extensions}
       {:ok, rest, packet}
     end
@@ -317,7 +361,7 @@ defmodule ExRTP.Packet do
 
   defp do_decode_extension(@one_byte_profile, raw), do: decode_one_byte(raw)
   defp do_decode_extension(@two_byte_profile, raw), do: decode_two_byte(raw)
-  defp do_decode_extension(_profile, raw), do: {:ok, [Extension.new(nil, raw)]}
+  defp do_decode_extension(_profile, raw), do: {:ok, raw}
 
   defp decode_one_byte(raw, acc \\ [])
   defp decode_one_byte(<<>>, acc), do: {:ok, acc}

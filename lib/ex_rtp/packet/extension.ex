@@ -4,11 +4,7 @@ defmodule ExRTP.Packet.Extension do
   """
 
   @typedoc """
-  Struct representing raw RTP header extension.
-
-  Can be either:
-    * header extension, as specified in `RFC 3550`, then `id` is equal to `nil`
-    * one-byte or two-byte extension, as specified in `RFC 5285`
+  Struct representing raw RTP header extension as defined in `RFC 8285`.
   """
   @type t() :: %__MODULE__{
           id: non_neg_integer() | nil,
@@ -20,7 +16,7 @@ defmodule ExRTP.Packet.Extension do
 
   @doc """
   Converts extension struct to raw extension which can be used
-  in `ExRTP.Packet.set_extension/3`.
+  in `ExRTP.Packet.add_extension/2`.
   """
   @callback to_raw(extension :: struct(), id :: non_neg_integer()) :: t()
 
