@@ -13,6 +13,7 @@ Implements:
 Includes out-of-the-box support for these RTP header extensions:
 - [A Real-time Transport Protocol (RTP) Header Extension for Client-to-Mixer Audio Level Indication](https://datatracker.ietf.org/doc/html/rfc6464)
 - [RTP Header Extension for the RTP Control Protocol (RTCP) Source Description Items](https://datatracker.ietf.org/doc/html/rfc7941)
+- [RTP Extensions for Transport-wide Congestion Control](https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01)
 
 Other RTP header extensions can be added by implementing the `ExRTP.Packet.Extension` behaviour.
 
