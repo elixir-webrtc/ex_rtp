@@ -209,6 +209,35 @@ defmodule ExRTP.PacketTest do
     end
   end
 
+  describe "remove_extension/2" do
+    test "without valid extensions" do
+      packet = Packet.set_extension(@packet, 5, <<1, 2, 3, 4>>)
+      no_ext_packet = Packet.remove_extension(packet, 5)
+
+      assert packet == no_ext_packet
+    end
+
+    test "with valid extensions" do
+      packet =
+        @packet
+        |> Packet.add_extension(%Extension{id: 5, data: <<0, 1, 2, 3>>})
+        |> Packet.add_extension(%Extension{id: 3, data: <<0, 1, 2, 3>>})
+        |> Packet.add_extension(%Extension{id: 5, data: <<0, 1, 2, 3>>})
+        |> Packet.remove_extension(5)
+
+      assert %Packet{extensions: [%Extension{id: 3}]} = packet
+    end
+
+    test "with no packets after removal" do
+      packet =
+        @packet
+        |> Packet.add_extension(%Extension{id: 5, data: <<0, 1, 2, 3>>})
+        |> Packet.remove_extension(5)
+
+      assert %Packet{extension: false, extensions: nil, extension_profile: nil} = packet
+    end
+  end
+
   test "remove_extensions/1" do
     packet =
       @packet

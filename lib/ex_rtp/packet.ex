@@ -192,7 +192,25 @@ defmodule ExRTP.Packet do
   end
 
   @doc """
-  Removes RTP header extension (or all of the extensions) form this packet.
+  Removes all RTP header extension with specified ID, if there's any.
+
+  This function works only works for `RFC 8285` extensions, for the
+  `RFC 3550` extension use `remove_extensions/1` instead.
+  """
+  @spec remove_extension(t(), non_neg_integer()) :: t()
+  def remove_extension(%__MODULE__{extensions: extensions} = packet, _id)
+      when not is_list(extensions),
+      do: packet
+
+  def remove_extension(packet, id) do
+    case Enum.reject(packet.extensions, &(&1.id == id)) do
+      [] -> %__MODULE__{packet | extension: false, extension_profile: nil, extensions: nil}
+      extensions -> %__MODULE__{packet | extensions: extensions}
+    end
+  end
+
+  @doc """
+  Removes RTP header extensions form this packet.
   """
   @spec remove_extensions(t()) :: t()
   def remove_extensions(packet) do
