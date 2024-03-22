@@ -24,3 +24,6 @@ ex_rtp-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Localy stored dialyzer artifacts
+/_dialyzer/
