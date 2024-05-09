@@ -1,7 +1,7 @@
 defmodule ExRTP.MixProject do
   use Mix.Project
 
-  @version "0.3.0"
+  @version "0.4.0"
   @source_url "https://github.com/elixir-webrtc/ex_rtp"
 
   def project do
@@ -10,7 +10,7 @@ defmodule ExRTP.MixProject do
       version: @version,
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
-      description: "Implementation of RTP protocol",
+      description: "Implementation of the RTP protocol",
       package: package(),
       deps: deps(),
 
