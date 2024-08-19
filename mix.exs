@@ -9,6 +9,7 @@ defmodule ExRTP.MixProject do
       app: :ex_rtp,
       version: @version,
       elixir: "~> 1.15",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       description: "Implementation of the RTP protocol",
       package: package(),
@@ -42,6 +43,9 @@ defmodule ExRTP.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_env), do: ["lib"]
+
   def package do
     [
       licenses: ["Apache-2.0"],
@@ -51,6 +55,7 @@ defmodule ExRTP.MixProject do
 
   defp deps do
     [
+      {:heap, "~> 3.0"},
       {:excoveralls, "~> 0.18", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
