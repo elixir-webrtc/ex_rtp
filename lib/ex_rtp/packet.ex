@@ -202,10 +202,10 @@ defmodule ExRTP.Packet do
       when not is_list(extensions),
       do: packet
 
-  def remove_extension(packet, id) do
-    case Enum.reject(packet.extensions, &(&1.id == id)) do
-      [] -> %__MODULE__{packet | extension: false, extension_profile: nil, extensions: nil}
-      extensions -> %__MODULE__{packet | extensions: extensions}
+  def remove_extension(%__MODULE__{extensions: extensions} = packet, id) do
+    case Enum.reject(extensions, &(&1.id == id)) do
+      [] -> %{packet | extension: false, extension_profile: nil, extensions: nil}
+      extensions -> %{packet | extensions: extensions}
     end
   end
 
@@ -357,7 +357,7 @@ defmodule ExRTP.Packet do
   defp strip_padding(raw, packet) do
     size = byte_size(raw)
 
-    with <<_rest::binary-size(size - 1), len>> <- raw,
+    with <<_rest::binary-size(^size - 1), len>> <- raw,
          <<rest::binary-size(^size - ^len), _rest::binary>> <- raw do
       {:ok, rest, %{packet | padding_size: len}}
     else
