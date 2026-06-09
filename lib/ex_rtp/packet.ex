@@ -357,7 +357,7 @@ defmodule ExRTP.Packet do
   defp strip_padding(raw, packet) do
     size = byte_size(raw)
 
-    with <<_rest::binary-size(size - 1), len>> <- raw,
+    with <<_rest::binary-size(^size - 1), len>> <- raw,
          <<rest::binary-size(^size - ^len), _rest::binary>> <- raw do
       {:ok, rest, %{packet | padding_size: len}}
     else
